@@ -29,6 +29,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 
+#include "stm32f4xx_ll_tim.h"
 #include "stm32f4xx_ll_system.h"
 #include "stm32f4xx_ll_gpio.h"
 #include "stm32f4xx_ll_exti.h"
@@ -69,8 +70,6 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define POWER_OUT1_EN_Pin LL_GPIO_PIN_13
 #define POWER_OUT1_EN_GPIO_Port GPIOC
-#define POWER_5V_3N_Pin LL_GPIO_PIN_14
-#define POWER_5V_3N_GPIO_Port GPIOC
 #define RS485_DIR1_Pin LL_GPIO_PIN_15
 #define RS485_DIR1_GPIO_Port GPIOC
 #define LED_Pin LL_GPIO_PIN_0

@@ -53,17 +53,19 @@ include_directories(Core/Inc Drivers/STM32F4xx_HAL_Driver/Inc Drivers/STM32F4xx_
 # Include arm_math head files
 #include_directories(DSP/Include DSP/Include/dsp DSP/PrivateInclude)
 include_directories(DSP/Include DSP/Include/dsp)
+# Include MAVLINK head files
+include_directories(Module/Mavlink/C)
 # Include BSP head files
 include_directories(Module/BSP/Inc)
+# Include PSAI head files
+include_directories(Module/PSAI/Inc)
 # include user task head files
 include_directories(Task/Inc)
+
 
 add_definitions(-DDEBUG -DUSE_HAL_DRIVER -DSTM32F446xx -DUSE_FULL_LL_DRIVER -DTX_INCLUDE_USER_DEFINE_FILE)
 
 file(GLOB_RECURSE SOURCES "AZURE_RTOS/*.*" "ThreadX/*.*" "Core/*.*" "Middlewares/*.*" "Drivers/*.*")
-# Add user source files
-file(GLOB_RECURSE Module "Module/*.*")
-file(GLOB_RECURSE TASKS "Task/*.*")
 # Add user source files
 file(GLOB_RECURSE Module "Module/*.*")
 file(GLOB_RECURSE TASKS "Task/*.*")

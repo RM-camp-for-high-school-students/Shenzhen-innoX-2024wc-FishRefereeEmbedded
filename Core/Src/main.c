@@ -94,10 +94,10 @@ int main(void)
   MX_DMA_Init();
   MX_CAN1_Init();
   MX_CAN2_Init();
-  MX_USART2_UART_Init();
-  MX_UART5_Init();
   MX_TIM3_Init();
-  MX_USART1_UART_Init();
+  MX_TIM2_Init();
+  MX_UART4_Init();
+  MX_USART3_UART_Init();
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
 
@@ -139,7 +139,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 240;
+  RCC_OscInitStruct.PLL.PLLN = 320;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLR = 2;

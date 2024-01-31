@@ -52,17 +52,19 @@ include_directories(${includes})
 # Include arm_math head files
 #include_directories(DSP/Include DSP/Include/dsp DSP/PrivateInclude)
 include_directories(DSP/Include DSP/Include/dsp)
+# Include MAVLINK head files
+include_directories(Module/Mavlink/C)
 # Include BSP head files
 include_directories(Module/BSP/Inc)
+# Include PSAI head files
+include_directories(Module/PSAI/Inc)
 # include user task head files
 include_directories(Task/Inc)
+
 
 add_definitions(${defines})
 
 file(GLOB_RECURSE SOURCES ${sources})
-# Add user source files
-file(GLOB_RECURSE Module "Module/*.*")
-file(GLOB_RECURSE TASKS "Task/*.*")
 # Add user source files
 file(GLOB_RECURSE Module "Module/*.*")
 file(GLOB_RECURSE TASKS "Task/*.*")

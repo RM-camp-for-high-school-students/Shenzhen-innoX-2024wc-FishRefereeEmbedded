@@ -11,8 +11,7 @@ namespace Flash {
     enum Flash_Element_ID {
         Element_ID_BASE = 0,
         /*Write your flash element ID here*/
-        Element_ID_REFID,
-
+        Element_ID_REFID,   //ID
         /*End of flash element ID*/
         Element_ID_MAX
     };
@@ -23,8 +22,8 @@ namespace Flash {
         uint8_t crc[2];
     };
 
-#define    FLASH_STORAGE_BASE_ADDRESS 0x08060000 //Sector 11
-#define    FLASH_STORAGE_SECTOR FLASH_SECTOR_7 //Sector 11
+#define    FLASH_STORAGE_BASE_ADDRESS 0x08060000
+#define    FLASH_STORAGE_SECTOR FLASH_SECTOR_7
 #define    FLASH_STORAGE_SIZE         0x00020000 //128 Kbytes
 #define    FLASH_STORAGE_CRC_FILED_SIZE    0x02  //2 bytes
 

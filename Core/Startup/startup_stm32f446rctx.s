@@ -61,7 +61,7 @@ Reset_Handler:
   ldr   sp, =_estack      /* set stack pointer */
   
 /* Call the clock system initialization function.*/
-  bl  SystemInit  
+                    bl  SystemInit
 
 /* Copy the data segment initializers from flash to SRAM */  
   ldr r0, =_sdata
