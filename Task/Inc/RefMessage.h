@@ -20,6 +20,11 @@ struct Msg_ZDT_t {
     uint8_t enable[4]; //Enable Number
 };
 
+struct Msg_Servo_t{
+    uint8_t enable;
+    uint8_t release[3];
+};
+
 
 #pragma pack(pop) //恢复对齐状态
 #endif

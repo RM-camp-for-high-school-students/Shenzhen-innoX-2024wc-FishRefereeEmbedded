@@ -70,6 +70,8 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define POWER_OUT1_EN_Pin LL_GPIO_PIN_13
 #define POWER_OUT1_EN_GPIO_Port GPIOC
+#define PWR_5V_EN_Pin LL_GPIO_PIN_14
+#define PWR_5V_EN_GPIO_Port GPIOC
 #define RS485_DIR1_Pin LL_GPIO_PIN_15
 #define RS485_DIR1_GPIO_Port GPIOC
 #define LED_Pin LL_GPIO_PIN_0

@@ -6,7 +6,6 @@
 
 class cDWT {
 protected:
-    volatile uint32_t _sys_clk;
     volatile uint32_t _start;
 public:
     cDWT() {
@@ -14,7 +13,6 @@ public:
             CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
             DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
         }
-        _sys_clk = SystemCoreClock;
         _start = DWT->CYCCNT;
     }
 
@@ -25,7 +23,7 @@ public:
     inline float dt_sec() {
         uint32_t tmp = DWT->CYCCNT - _start;
         _start = DWT->CYCCNT;
-        return (float) tmp / (float) _sys_clk;
+        return (float) tmp / (float) SystemCoreClock;
     }
 
     inline void update() {

@@ -7,7 +7,7 @@
         {
             "name": "Cortex Debug",
             "cwd": "${workspaceFolder}",
-            "executable": "./build/FishChassis.elf",
+            "executable": "./build/FishRef.elf",
             "request": "launch",
             "type": "cortex-debug",
             "runToEntryPoint": "main",

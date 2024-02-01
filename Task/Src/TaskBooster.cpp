@@ -34,6 +34,12 @@ extern uint8_t RefereeThreadStack[1024];
 
 extern void RefereeThreadFun(ULONG initial_input);
 
+extern TX_THREAD ServoThread;
+extern uint8_t ServoThreadStack[1024];
+
+/*Close-loop control Motors*/
+extern void ServoThreadFun(ULONG initial_input);
+
 void Task_Booster() {
     LL_TIM_EnableAllOutputs(TIM2);
     LL_TIM_CC_EnableChannel(TIM2, LL_TIM_CHANNEL_CH4);
@@ -60,7 +66,7 @@ void Task_Booster() {
             motor_zdt_num = 4;
         }
         motor_dm_num = 1;
-        motor_zdt_num = 1;
+        motor_zdt_num = 0;
 /**********信号量***********/
 //	tx_semaphore_create(
 //		&MotorHS100Sem,
@@ -92,8 +98,8 @@ void Task_Booster() {
                 0x0000,
                 MotorThreadStack,
                 sizeof(MotorThreadStack),
-                3,
-                3,
+                2,
+                2,
                 TX_NO_TIME_SLICE,
                 TX_AUTO_START);
 
@@ -106,6 +112,18 @@ void Task_Booster() {
                 sizeof(RefereeThreadStack),
                 5,
                 5,
+                TX_NO_TIME_SLICE,
+                TX_AUTO_START);
+
+        tx_thread_create(
+                &ServoThread,
+                (CHAR *) "Servo",
+                ServoThreadFun,
+                0x0000,
+                ServoThreadStack,
+                sizeof(ServoThreadStack),
+                4,
+                4,
                 TX_NO_TIME_SLICE,
                 TX_AUTO_START);
 
@@ -133,4 +151,13 @@ void Task_Booster() {
             15,
             TX_NO_TIME_SLICE,
             TX_AUTO_START);
+}
+
+uint32_t fishPrintf(uint8_t *buf, const char *str, ...) {
+    /*计算字符串长度,并将字符串输出到数据区*/
+    va_list ap;
+    va_start(ap, str);
+    uint32_t len = vsnprintf((char *) buf, 512, str, ap);
+    va_end(ap);
+    return len;
 }

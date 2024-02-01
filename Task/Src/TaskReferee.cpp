@@ -2,8 +2,12 @@
 #include "tx_api.h"
 #include "main.h"
 #include "ReferCom/mavlink.h"
+#include "TaskReferee.h"
+#include "TaskMotor.h"
 #include "usart.h"
-
+#include "RefMessage.h"
+#include "libpid-i-1.0.hpp"
+using namespace PID;
 static mavlink_message_t msg_tx;
 mavlink_component_heartbeat_t heart_beat_pond = {.pack_count = 0 ,.battery_voltage=24000, .state=REF_FISHPOND_STATE_NORMAL, .error_code=REF_ERROR_NONE,};
 mavlink_component_heartbeat_t heart_beat_table_x = {.pack_count = 0 ,.battery_voltage=24000, .state=REF_FEEDINGTABLE_STATE_NORMAL, .error_code=REF_ERROR_NONE,};
@@ -13,14 +17,22 @@ mavlink_state_rc_t rc_state_y = {.state=1};
 
 uint8_t tx_buf[1024];
 uint16_t tx_len;
-
+extern DM_Motor_t dm_motor[4];
+extern PID_Inc_f dm_vel_pid[4];
 
 TX_THREAD RefereeThread;
 uint8_t RefereeThreadStack[1024] = {0};
 
-[[noreturn]] void RefereeThreadFun(ULONG initial_input) {
-
+[[noreturn]] void RefereeThreadFun(ULONG initial_input) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
     tx_thread_sleep(5000);
+
+    for (;;) {
+        tx_len = fishPrintf(tx_buf, "V=%f,\nP=%f,\nE=%d,\nPO=%f,\n",dm_motor[0].vel,dm_motor[0].pst_radian,dm_motor[0].pst,dm_vel_pid[0].Out());
+
+        HAL_UART_Transmit_DMA(&huart4, tx_buf, tx_len);
+        tx_thread_sleep(10);
+    }
+
     for(;;){
         tx_len = 0;
         mavlink_msg_component_heartbeat_encode(REF_COMPONENT_ID_X_FEEDINGTBALE,REF_COMPONENT_ID_X_FEEDINGTBALE,&msg_tx,&heart_beat_table_x);
