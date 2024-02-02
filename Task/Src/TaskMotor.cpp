@@ -6,27 +6,20 @@
  * @LastEditors: qianwan
  */
 #include "TaskMotor.h"
-#include "DWT.hpp"
-#include "Filter.hpp"
 #include "RefMessage.h"
 #include "ZDT.hpp"
 #include "can.h"
-#include "libpid-i-1.0.hpp"
 #include "om.h"
 #include "tx_api.h"
 
-#define ENCODER_TO_RADIAN 0.00076699039394f
 
-using namespace PID;
 using namespace TASK_MOTOR;
 
 static cDMFace dm_motor[4];
 static ZDT::cZDT zdt[4];
 
-uint8_t motor_error = 0;
 #define DM_SPEED_FACE 1.0f
-extern uint8_t motor_dm_num;
-extern uint8_t motor_zdt_num;
+
 
 static uint32_t *can_mail_box = nullptr;
 static CAN_TxHeaderTypeDef tx_header2_0 = {
@@ -42,41 +35,40 @@ static bool can_filter_config();
 static void MotorReInit();
 
 TX_THREAD MotorThread;
-uint8_t MotorThreadStack[2048] = {0};
+uint8_t MotorThreadStack[3072] = {0};
 
 /*Close-loop control Motors*/
 [[noreturn]] void MotorThreadFun(ULONG initial_input) {
     /*Creat Wheel Topic*/
-    om_suber_t *DM_suber = om_subscribe(
-            om_config_topic(nullptr, "CA", "DM_Motor", sizeof(Msg_DM_t)));
-    om_suber_t *ZDT_suber = om_subscribe(
-            om_config_topic(nullptr, "CA", "ZDT_Motor", sizeof(Msg_ZDT_t)));
+    om_suber_t *DM_suber = om_subscribe(om_find_topic("DM", UINT32_MAX));
+    om_suber_t *ZDT_suber = om_subscribe(om_find_topic("ZDT", UINT32_MAX));
+
     Msg_ZDT_t msg_zdt{};
     Msg_DM_t msg_dm{};
 
-    cDWT dwt[2][4];
 
-    for (uint8_t id = 0; id < motor_dm_num; id++) {
+    for (uint8_t id = 0; id < sys_state.motor_dm_num; id++) {
         dm_motor[id].SetDM(0x01 + id, &hcan1);
     }
-    for (uint8_t id = 0; id < motor_zdt_num; id++) {
+    for (uint8_t id = 0; id < sys_state.motor_zdt_num; id++) {
         zdt[id].SetID(id + 0x01);
     }
 
     uint8_t dm_enable_last[4] = {0, 0, 0, 0};
     uint8_t zdt_enable_last[4] = {0, 0, 0, 0};
 
-    for (uint8_t id = 0; id < motor_dm_num; id++) {
-        msg_dm.enable[id] = true;
-    }
-    for (uint8_t id = 0; id < motor_zdt_num; id++) {
-        msg_zdt.enable[id] = true;
-    }
+//    for (uint8_t id = 0; id < sys_state.motor_dm_num; id++) {
+//        msg_dm.enable[id] = true;
+//    }
+//    for (uint8_t id = 0; id < sys_state.motor_zdt_num; id++) {
+//        msg_zdt.enable[id] = true;
+//    }
+
     LL_GPIO_SetOutputPin(POWER_OUT1_EN_GPIO_Port, POWER_OUT1_EN_Pin);
     can_filter_config();
 
     MotorReInit();
-//   tx_thread_sleep(TX_WAIT_FOREVER);
+
     /*Config: Motor PST Set*/
     if (!LL_GPIO_IsInputPinSet(KEY_GPIO_Port, KEY_Pin)) {
         LL_TIM_SetAutoReload(TIM2, 399);
@@ -97,62 +89,60 @@ uint8_t MotorThreadStack[2048] = {0};
         }
 
         LL_TIM_OC_SetCompareCH4(TIM2, 249);
-        tx_thread_sleep(100);
         __disable_interrupts();
-        NVIC_SystemReset();
+        HAL_NVIC_SystemReset();
     }
 
     // Update ZDT
-    for (uint8_t id = 0; id < motor_zdt_num; id++) {
+    for (uint8_t id = 0; id < sys_state.motor_zdt_num; id++) {
         zdt[id].TimeUpdate(tx_time_get());
     }
-    for (uint8_t id = 0; id < motor_dm_num; id++) {
+    for (uint8_t id = 0; id < sys_state.motor_dm_num; id++) {
         dm_motor[id].UpdateTim(tx_time_get());
     }
 
-    ULONG timer = tx_time_get();
-    float dm_pst_test[4] = {0.8f, 0.8f, 0.8f, 0.8f};
-    float zdt_pst_test[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-    uint8_t key_last = 1;
-    uint8_t key_step = 0;
-    uint8_t dir = 0;
+//    float dm_pst_test[4] = {0.8f, 0.8f, 0.8f, 0.8f};
+//    float zdt_pst_test[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+//    uint8_t key_last = 1;
+//    uint8_t key_step = 0;
+
     for (;;) {
-        //        om_suber_export(DM_suber, &msg_dm, false);
-        //        om_suber_export(ZDT_suber, &msg_zdt, false);
-        if (!LL_GPIO_IsInputPinSet(KEY_GPIO_Port, KEY_Pin)) {
-            if (key_last) {
-                zdt_pst_test[0] += 60.0f;
-                zdt_pst_test[1] += 60.0f;
-                zdt_pst_test[2] += 60.0f;
-                zdt_pst_test[3] += 60.0f;
-                if (key_step == 0) {
-                    dm_pst_test[0] = 0.01f;
-                    dm_pst_test[2] = 0.01f;
-                    key_step++;
-                } else if (key_step == 1) {
-                    dm_pst_test[1] = 0.01f;
-                    dm_pst_test[3] = 0.01f;
-                    key_step++;
-                } else if (key_step == 2) {
-                    dm_pst_test[1] = 0.8f;
-                    dm_pst_test[3] = 0.8f;
-                    key_step++;
-                } else if (key_step == 3) {
-                    dm_pst_test[0] = 0.8f;
-                    dm_pst_test[2] = 0.8f;
-                    key_step = 0;
-                }
-                //0.8 pond
-                //1.1 table
-            }
-            key_last = 0;
-        } else {
-            key_last = 1;
-        }
+        om_suber_export(DM_suber, &msg_dm, false);
+        om_suber_export(ZDT_suber, &msg_zdt, false);
+//        if (!LL_GPIO_IsInputPinSet(KEY_GPIO_Port, KEY_Pin)) {
+//            if (key_last) {
+//                zdt_pst_test[0] += 60.0f;
+//                zdt_pst_test[1] += 60.0f;
+//                zdt_pst_test[2] += 60.0f;
+//                zdt_pst_test[3] += 60.0f;
+//                if (key_step == 0) {
+//                    dm_pst_test[0] = 0.01f;
+//                    dm_pst_test[2] = 0.01f;
+//                    key_step++;
+//                } else if (key_step == 1) {
+//                    dm_pst_test[1] = 0.01f;
+//                    dm_pst_test[3] = 0.01f;
+//                    key_step++;
+//                } else if (key_step == 2) {
+//                    dm_pst_test[1] = 0.8f;
+//                    dm_pst_test[3] = 0.8f;
+//                    key_step++;
+//                } else if (key_step == 3) {
+//                    dm_pst_test[0] = 0.8f;
+//                    dm_pst_test[2] = 0.8f;
+//                    key_step = 0;
+//                }
+//                //0.8 pond
+//                //1.1 table
+//            }
+//            key_last = 0;
+//        } else {
+//            key_last = 1;
+//        }
 
         /*Motor Close-loop*/
         // DM
-        for (uint8_t id = 0; id < motor_dm_num; id++) {
+        for (uint8_t id = 0; id < sys_state.motor_dm_num; id++) {
             if (msg_dm.enable[id] == false) {
                 dm_motor[id].DisableMotor();
                 dm_enable_last[id] = false;
@@ -162,15 +152,15 @@ uint8_t MotorThreadStack[2048] = {0};
                 dm_enable_last[id] = true;
                 tx_thread_sleep(1);
             } else {
-                dm_motor[id].PstVelTransmit(dm_pst_test[id], DM_SPEED_FACE);
-//                dm_motor[id].EnableMotor();
+//                dm_motor[id].PstVelTransmit(dm_pst_test[id], DM_SPEED_FACE);
+                dm_motor[id].PstVelTransmit(msg_dm.pst[id], DM_SPEED_FACE);
                 tx_thread_sleep(1);
             }
         }
-        tx_thread_sleep(5 - motor_dm_num);
+        tx_thread_sleep(5 - sys_state.motor_dm_num);
 
         // ZDT
-        for (uint8_t id = 0; id < motor_zdt_num; id++) {
+        for (uint8_t id = 0; id < sys_state.motor_zdt_num; id++) {
             if (msg_zdt.enable[id] == false) {
                 zdt[id].Enable(tx_header2_0.ExtId, tx_header2_0.DLC, can_data2_0,
                                false);
@@ -178,52 +168,58 @@ uint8_t MotorThreadStack[2048] = {0};
                 zdt_enable_last[id] = false;
                 tx_thread_sleep(1);
             } else if (zdt_enable_last[id] == false) {
-                zdt[id].Enable(tx_header2_0.ExtId, tx_header2_0.DLC, can_data2_0, true);
+                zdt[id].ClearPstZero(tx_header2_0.ExtId, tx_header2_0.DLC, can_data2_0, true);
+                zdt[id].Enable(tx_header2_1.ExtId, tx_header2_1.DLC, can_data2_1, true);
                 HAL_CAN_AddTxMessage(&hcan2, &tx_header2_0, can_data2_0, can_mail_box);
+                HAL_CAN_AddTxMessage(&hcan2, &tx_header2_1, can_data2_1, can_mail_box);
                 zdt_enable_last[id] = true;
                 tx_thread_sleep(1);
             } else {
+//                zdt[id].TpzPst(tx_header2_0.ExtId, tx_header2_1.ExtId, tx_header2_0.DLC,
+//                               tx_header2_1.DLC, can_data2_0, can_data2_1,
+//                               ZDT::ANTICLOCKWISE, 120, 120, 60, zdt_pst_test[0],
+//                               ZDT::ABSOLUTE);
                 zdt[id].TpzPst(tx_header2_0.ExtId, tx_header2_1.ExtId, tx_header2_0.DLC,
                                tx_header2_1.DLC, can_data2_0, can_data2_1,
-                               ZDT::ANTICLOCKWISE, 120, 120, 60, zdt_pst_test[0],
+                               ZDT::ANTICLOCKWISE, 120, 120, 60, msg_zdt.pst[id],
                                ZDT::ABSOLUTE);
                 HAL_CAN_AddTxMessage(&hcan2, &tx_header2_0, can_data2_0, can_mail_box);
                 HAL_CAN_AddTxMessage(&hcan2, &tx_header2_1, can_data2_1, can_mail_box);
                 tx_thread_sleep(1);
             }
         }
-        tx_thread_sleep(5 - motor_zdt_num);
+        tx_thread_sleep(5 - sys_state.motor_zdt_num);
 
         /*Over Time Check*/
         /*Check motor status*/
-        for (uint8_t id = 0; id < motor_dm_num; id++) {
+        for (uint8_t id = 0; id < sys_state.motor_dm_num; id++) {
             if (tx_time_get() - dm_motor[id].GetTim() > 1000) {
                 dm_motor[id].SetState(ZDT::STATE_ERROR);
             }
             if (dm_motor[id].GetState() == ZDT::STATE_ERROR) {
-                motor_error = 1;
+                sys_state.motor_error = 1;
             }
         }
 
         /*Check ZDT status*/
-        for (uint8_t id = 0; id < motor_zdt_num; id++) {
+        for (uint8_t id = 0; id < sys_state.motor_zdt_num; id++) {
             if (tx_time_get() - zdt[id].GetTime() > 1000) {
                 zdt[id].SetState(ZDT::STATE_ERROR);
             }
             if (zdt[id].GetState() == ZDT::STATE_ERROR) {
-                motor_error = 1;
+                sys_state.motor_error = 1;
             }
         }
 
-        while (motor_error) {
+        while (sys_state.motor_error) {
             /*Disable All motor*/
             // DM
-            for (uint8_t id = 0; id < motor_dm_num; id++) {
+            for (uint8_t id = 0; id < sys_state.motor_dm_num; id++) {
                 dm_motor[id].DisableMotor();
                 tx_thread_sleep(1);
             }
             // ZDT
-            for (uint8_t id = 0; id < motor_zdt_num; id++) {
+            for (uint8_t id = 0; id < sys_state.motor_zdt_num; id++) {
                 zdt[id].Enable(tx_header2_0.ExtId, tx_header2_0.DLC, can_data2_0,
                                false);
                 HAL_CAN_AddTxMessage(&hcan2, &tx_header2_0, can_data2_0, can_mail_box);
@@ -232,7 +228,7 @@ uint8_t MotorThreadStack[2048] = {0};
 //            LL_TIM_OC_SetCompareCH4(TIM2, 249);
 //            tx_thread_sleep(1000);
 //            LL_TIM_OC_SetCompareCH4(TIM2, 0);
-            tx_thread_sleep(100);
+            tx_thread_sleep(1000);
         }
     }
 }
@@ -248,32 +244,32 @@ static void MotorReInit() {
 
     // Disable All Motor
     // DM
-    for (uint8_t id = 0; id < motor_dm_num; id++) {
+    for (uint8_t id = 0; id < sys_state.motor_dm_num; id++) {
         dm_motor[id].DisableMotor();
         dm_motor[id].SetState(ZDT::FDB_NORMAL);
         tx_thread_sleep(1);
     }
 
     //Disable ZDT
-    for (uint8_t id = 0; id < motor_zdt_num; id++) {
+    for (uint8_t id = 0; id < sys_state.motor_zdt_num; id++) {
         zdt[id].Enable(tx_header2_0.ExtId, tx_header2_0.DLC, can_data2_0, false);
         zdt[id].SetState(ZDT::FDB_NORMAL);
         HAL_CAN_AddTxMessage(&hcan2, &tx_header2_0, can_data2_0, can_mail_box);
         tx_thread_sleep(1);
     }
-//    //Clear OverCurrent
-//    for (uint8_t id = 0; id < motor_zdt_num; id++) {
-//        zdt[id].ClearOverBlock(tx_header2_0.ExtId, tx_header2_0.DLC, can_data2_0, false);
-//        HAL_CAN_AddTxMessage(&hcan2, &tx_header2_0, can_data2_0, can_mail_box);
-//        tx_thread_sleep(1);
-//    }
-//    //Clear Zero
-//    for (uint8_t id = 0; id < motor_zdt_num; id++) {
-//        zdt[id].ClearPstZero(tx_header2_0.ExtId, tx_header2_0.DLC, can_data2_0, false);
-//        HAL_CAN_AddTxMessage(&hcan2, &tx_header2_0, can_data2_0, can_mail_box);
-//        tx_thread_sleep(1);
-//    }
-    motor_error = 0;
+    //Clear OverCurrent
+    for (uint8_t id = 0; id < sys_state.motor_zdt_num; id++) {
+        zdt[id].ClearOverBlock(tx_header2_0.ExtId, tx_header2_0.DLC, can_data2_0, false);
+        HAL_CAN_AddTxMessage(&hcan2, &tx_header2_0, can_data2_0, can_mail_box);
+        tx_thread_sleep(1);
+    }
+    //Clear Zero
+    for (uint8_t id = 0; id < sys_state.motor_zdt_num; id++) {
+        zdt[id].ClearPstZero(tx_header2_0.ExtId, tx_header2_0.DLC, can_data2_0, false);
+        HAL_CAN_AddTxMessage(&hcan2, &tx_header2_0, can_data2_0, can_mail_box);
+        tx_thread_sleep(1);
+    }
+    sys_state.motor_error = 0;
     // BB
     LL_TIM_OC_SetCompareCH4(TIM2, 249);
     tx_thread_sleep(1000);

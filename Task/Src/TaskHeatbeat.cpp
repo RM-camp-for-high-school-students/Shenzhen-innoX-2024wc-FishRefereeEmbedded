@@ -9,6 +9,7 @@
 #include "app_threadx.h"
 #include "Flash.hpp"
 #include "ReferCom/mavlink.h"
+#include "RefMessage.h"
 
 #define SHAKE_TIME 150
 /*TraceX utilities*/
@@ -17,9 +18,8 @@
 UCHAR TraceXBuf[TRC_BUF_SIZE];
 
 static void SetSysID();
-extern uint8_t ref_system_id;
 TX_THREAD HeartBeatThread;
-uint8_t HeartBeatThreadStack[256] = {0};
+uint8_t HeartBeatThreadStack[512] = {0};
 
 /*Heart beat led show and id config*/
 void HeartBeatThreadFun(ULONG initial_input) {
@@ -35,7 +35,7 @@ void HeartBeatThreadFun(ULONG initial_input) {
     LL_TIM_OC_SetCompareCH4(TIM2,0);
     uint32_t period = 2000;
 
-    while(ref_system_id==0){
+    while(sys_state.ref_system_id==0){
         LL_TIM_OC_SetCompareCH4(TIM2,249);
         LL_GPIO_ResetOutputPin(LED_GPIO_Port,LED_Pin);
         tx_thread_sleep(1500);
@@ -45,13 +45,13 @@ void HeartBeatThreadFun(ULONG initial_input) {
     }
 
     for (;;) {
-        for(uint8_t _id=0;_id<ref_system_id;_id++){
+        for(uint8_t _id=0;_id<sys_state.ref_system_id;_id++){
             LL_GPIO_ResetOutputPin(LED_GPIO_Port,LED_Pin);
             tx_thread_sleep( SHAKE_TIME);
             LL_GPIO_SetOutputPin(LED_GPIO_Port,LED_Pin);
             tx_thread_sleep( SHAKE_TIME);
         }
-        tx_thread_sleep(period - SHAKE_TIME * ref_system_id);
+        tx_thread_sleep(period - SHAKE_TIME * sys_state.ref_system_id);
 //        tx_trace_enable(&TraceXBuf, TRC_BUF_SIZE, TRC_MAX_OBJ_COUNT);
     }
 }
@@ -60,7 +60,7 @@ void HeartBeatThreadFun(ULONG initial_input) {
 static void SetSysID() {
     ULONG time = tx_time_get();
     bool last_status;
-    ref_system_id = 0;
+    uint8_t ref_system_id = 0;
     tx_thread_sleep(100);
     LL_TIM_OC_SetCompareCH4(TIM2,0);
     tx_thread_sleep(100);

@@ -1,5 +1,5 @@
 cmake-build-*/
 build/
 .cache/
-Doc/*.exe
+Test/*.exe
 *.trx

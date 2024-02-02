@@ -25,6 +25,35 @@ struct Msg_Servo_t{
     uint8_t release[3];
 };
 
+struct Msg_Remoter_Judge_t{
+    uint8_t connected;
+};
+
+struct Sys_state_t{
+    uint8_t ref_system_id;
+    uint8_t motor_dm_num;
+    uint8_t motor_zdt_num;
+    uint8_t motor_error;
+
+    uint8_t state_last;
+    uint8_t state_now;
+    uint8_t state_new;
+
+    uint16_t state_parameter;
+
+    uint8_t state_switch_flag;
+
+    float angle_set_clean;
+    float angle_set_normal;
+
+    uint8_t error_code;
+
+    uint8_t* uart_rx_buf;
+    uint16_t buf_len;
+    uint16_t rx_len;
+};
 
 #pragma pack(pop) //恢复对齐状态
+
+extern Sys_state_t sys_state;
 #endif
