@@ -17,8 +17,7 @@ mavlink_state_rc_t rc_state_y = {.state=1};
 
 uint8_t tx_buf[1024];
 uint16_t tx_len;
-extern DM_Motor_t dm_motor[4];
-extern PID_Inc_f dm_vel_pid[4];
+
 
 TX_THREAD RefereeThread;
 uint8_t RefereeThreadStack[1024] = {0};
@@ -27,7 +26,6 @@ uint8_t RefereeThreadStack[1024] = {0};
     tx_thread_sleep(5000);
 
     for (;;) {
-        tx_len = fishPrintf(tx_buf, "V=%f,\nP=%f,\nE=%d,\nPO=%f,\n",dm_motor[0].vel,dm_motor[0].pst_radian,dm_motor[0].pst,dm_vel_pid[0].Out());
 
         HAL_UART_Transmit_DMA(&huart4, tx_buf, tx_len);
         tx_thread_sleep(10);

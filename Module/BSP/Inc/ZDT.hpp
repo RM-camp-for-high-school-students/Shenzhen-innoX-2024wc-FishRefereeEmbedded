@@ -65,6 +65,14 @@ namespace ZDT {
 
         uint8_t ReadEncoderFDB(uint8_t *pdata, uint8_t check_sum = 0x6B);
 
+        uint8_t ClearPstZero(uint32_t &exID, uint32_t &datalen, uint8_t *pbuf, uint8_t check_sum = 0x6B);
+
+        uint8_t ClearPstZeroFDB(uint8_t *pdata, uint8_t check_sum = 0x6B);
+
+        uint8_t ClearOverBlock(uint32_t &exID, uint32_t &datalen, uint8_t *pbuf, uint8_t check_sum = 0x6B);
+
+        uint8_t ClearOverBlockFDB(uint8_t *pdata, uint8_t check_sum = 0x6B);
+
         uint8_t TimeUpdate(uint64_t new_time);
 
         uint64_t GetTime();

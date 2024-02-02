@@ -58,15 +58,16 @@ void Task_Booster() {
     flashCore.flash_memcpy(Flash::Element_ID_REFID, (uint8_t *) &ref_system_id);
     flashCore.config_data(Flash::Element_ID_REFID, (uint8_t *) &ref_system_id, sizeof(ref_system_id));
     if (ref_system_id != 0) {
-        if((ref_system_id == REF_COMPONENT_ID_X_FEEDINGTBALE) || (ref_system_id == REF_COMPONENT_ID_X_FEEDINGTBALE)){
+        if ((ref_system_id == REF_COMPONENT_ID_X_FEEDINGTBALE) || (ref_system_id == REF_COMPONENT_ID_X_FEEDINGTBALE)) {
             motor_dm_num = 1;
             motor_zdt_num = 0;
         } else {
             motor_dm_num = 4;
             motor_zdt_num = 4;
         }
-        motor_dm_num = 1;
-        motor_zdt_num = 0;
+
+        motor_dm_num = 4;
+        motor_zdt_num = 4;
 /**********信号量***********/
 //	tx_semaphore_create(
 //		&MotorHS100Sem,

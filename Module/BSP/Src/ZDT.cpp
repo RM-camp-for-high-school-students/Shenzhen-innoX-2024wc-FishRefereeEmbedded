@@ -110,8 +110,6 @@ uint8_t cZDT::TpzPstFDB(uint8_t *pdata, uint8_t check_sum) {
     if (pdata[1] != 0x02) {
         _state = STATE_ERROR;
         return pdata[1];
-    } else {
-        _state = FDB_NORMAL;
     }
 
     return FDB_NORMAL;
@@ -144,18 +142,82 @@ uint8_t cZDT::ReadEncoderFDB(uint8_t *pdata, uint8_t check_sum) {
         return FDB_ERROR_CHECK;
     }
 
-    if (pdata[1] != 0x02) {
-        _state = pdata[1];
-        return pdata[1];
-    } else {
-        _state = FDB_NORMAL;
-    }
-
     _encoder = pdata[1] << 8 | pdata[2];
 
     return FDB_NORMAL;
 }
 
+uint8_t cZDT::ClearPstZero(uint32_t &exID, uint32_t &datalen, uint8_t *pbuf, uint8_t check_sum){
+    if (pbuf == nullptr) {
+        return FDB_ERROR_POINTER;
+    }
+
+    exID = _id << 8;
+    datalen = 3;
+
+    pbuf[0] = 0x0A;
+    pbuf[1] = 0x6D;
+    pbuf[2] = check_sum;
+    return FDB_NORMAL;
+}
+
+uint8_t cZDT::ClearPstZeroFDB(uint8_t *pdata, uint8_t check_sum){
+    if (pdata == nullptr) {
+        return FDB_ERROR_POINTER;
+    }
+
+    if (pdata[0] != 0x0A) {
+        return FDB_NOT_THIS;
+    }
+
+    if (pdata[2] != check_sum) {
+        _state = STATE_ERROR;
+        return FDB_ERROR_CHECK;
+    }
+
+    if (pdata[1] != 0x02) {
+        _state = pdata[1];
+        return pdata[1];
+    }
+
+    return FDB_NORMAL;
+}
+
+uint8_t cZDT::ClearOverBlock(uint32_t &exID, uint32_t &datalen, uint8_t *pbuf, uint8_t check_sum) {
+    if (pbuf == nullptr) {
+        return FDB_ERROR_POINTER;
+    }
+
+    exID = _id << 8;
+    datalen = 3;
+
+    pbuf[0] = 0x0E;
+    pbuf[1] = 0x52;
+    pbuf[2] = check_sum;
+    return FDB_NORMAL;
+}
+
+uint8_t cZDT::ClearOverBlockFDB(uint8_t *pdata, uint8_t check_sum) {
+    if (pdata == nullptr) {
+        return FDB_ERROR_POINTER;
+    }
+
+    if (pdata[0] != 0x0E) {
+        return FDB_NOT_THIS;
+    }
+
+    if (pdata[2] != check_sum) {
+        _state = STATE_ERROR;
+        return FDB_ERROR_CHECK;
+    }
+
+    if (pdata[1] != 0x02) {
+        _state = pdata[1];
+        return pdata[1];
+    }
+
+    return FDB_NORMAL;
+}
 //uint8_t cZDT::SetPID(uint32_t &exID0, uint32_t &exID1, uint32_t &exID2, uint32_t &datalen0, uint32_t &datalen1,
 //                     uint32_t &datalen2, uint8_t *pbuf0, uint8_t *pbuf1, uint8_t *pbuf2,
 //                     bool save_flag, uint32_t kp_trape, uint32_t kp_dirct, uint32_t kp_v, uint32_t ki_v,
