@@ -43,7 +43,7 @@ uint8_t ServoThreadStack[1024] = {0};
             key_last = 1;
         }
 
-        msg_servo.enable&&sys_state.motor_error ? LL_GPIO_SetOutputPin(PWR_5V_EN_GPIO_Port,PWR_5V_EN_Pin) : LL_GPIO_ResetOutputPin(PWR_5V_EN_GPIO_Port,PWR_5V_EN_Pin);
+        (msg_servo.enable&&!sys_state.motor_error) ? LL_GPIO_SetOutputPin(PWR_5V_EN_GPIO_Port,PWR_5V_EN_Pin) : LL_GPIO_ResetOutputPin(PWR_5V_EN_GPIO_Port,PWR_5V_EN_Pin);
 
         msg_servo.release[0] ? LL_TIM_OC_SetCompareCH1(TIM3, 899) : LL_TIM_OC_SetCompareCH1(TIM3, 1499);
         msg_servo.release[1] ? LL_TIM_OC_SetCompareCH2(TIM3, 899) : LL_TIM_OC_SetCompareCH2(TIM3, 1499);

@@ -93,13 +93,18 @@ uint8_t StateMachineThreadStack[1024] = {0};
                 om_publish(servo_pub, &msg_servo, sizeof(msg_servo), true, false);
 
                 if (sys_state.state_new != sys_state.state_now) {
-                    if (sys_state.state_new == REF_FEEDINGTABLE_STATE_CLEAN) {
+                    if (sys_state.state_new == REF_FEEDINGTABLE_STATE_FIXING) {
+                        sys_state.state_switch_flag = true;
+                        sys_state.state_now = sys_state.state_new;
+                        sys_state.state_switch_flag = false;
+                    }
+                    else if (sys_state.state_new == REF_FEEDINGTABLE_STATE_CLEAN) {
                         sys_state.state_switch_flag = true;
                         sys_state.state_now = sys_state.state_new;
 
                         msg_dm.pst[0] = sys_state.angle_set_clean;
                         om_publish(dm_pub, &msg_dm, sizeof(msg_dm), true, false);
-                        tx_thread_sleep(1000);
+                        tx_thread_sleep(1500);
 
                         msg_dm.pst[0] = sys_state.angle_set_normal;
                         om_publish(dm_pub, &msg_dm, sizeof(msg_dm), true, false);
@@ -119,13 +124,27 @@ uint8_t StateMachineThreadStack[1024] = {0};
                     }
                 }
             } else if (sys_state.state_now == REF_FEEDINGTABLE_STATE_CLEAN) {
-                tx_thread_sleep(100);
-                sys_state.state_new = REF_FEEDINGTABLE_STATE_NORMAL;
-                sys_state.state_now = REF_FEEDINGTABLE_STATE_NORMAL;
+                if (sys_state.state_new == REF_FEEDINGTABLE_STATE_FIXING) {
+                    sys_state.state_switch_flag = true;
+                    sys_state.state_now = sys_state.state_new;
+                    sys_state.state_switch_flag = false;
+                }
+                else if (sys_state.state_new == REF_FEEDINGTABLE_STATE_NORMAL) {
+                    sys_state.state_switch_flag = true;
+                    sys_state.state_now = sys_state.state_new;
+                    sys_state.state_switch_flag = false;
+                }
             } else if (sys_state.state_now == REF_FEEDINGTABLE_STATE_RELEASE) {
-                tx_thread_sleep(100);
-                sys_state.state_new = REF_FEEDINGTABLE_STATE_NORMAL;
-                sys_state.state_now = REF_FEEDINGTABLE_STATE_NORMAL;
+                if (sys_state.state_new == REF_FEEDINGTABLE_STATE_FIXING) {
+                    sys_state.state_switch_flag = true;
+                    sys_state.state_now = sys_state.state_new;
+                    sys_state.state_switch_flag = false;
+                }
+                else if (sys_state.state_new == REF_FEEDINGTABLE_STATE_NORMAL) {
+                    sys_state.state_switch_flag = true;
+                    sys_state.state_now = sys_state.state_new;
+                    sys_state.state_switch_flag = false;
+                }
             }
 
             sys_state.state_last = sys_state.state_now;
@@ -193,7 +212,12 @@ uint8_t StateMachineThreadStack[1024] = {0};
                 om_publish(zdt_pub, &msg_zdt, sizeof(msg_zdt), true, false);
 
                 if (sys_state.state_new != sys_state.state_now) {
-                    if (sys_state.state_new == REF_FISHPOND_STATE_CLEAN) {
+                    if (sys_state.state_new == REF_FISHPOND_STATE_FIXING) {
+                        sys_state.state_switch_flag = true;
+                        sys_state.state_now = sys_state.state_new;
+                        sys_state.state_switch_flag = false;
+                    }
+                    else if (sys_state.state_new == REF_FISHPOND_STATE_CLEAN) {
                         sys_state.state_switch_flag = true;
                         sys_state.state_now = sys_state.state_new;
 
@@ -231,13 +255,27 @@ uint8_t StateMachineThreadStack[1024] = {0};
                     }
                 }
             } else if (sys_state.state_now == REF_FISHPOND_STATE_CLEAN) {
-                tx_thread_sleep(100);
-                sys_state.state_new = REF_FEEDINGTABLE_STATE_NORMAL;
-                sys_state.state_now = REF_FEEDINGTABLE_STATE_NORMAL;
+                if (sys_state.state_new == REF_FISHPOND_STATE_FIXING) {
+                    sys_state.state_switch_flag = true;
+                    sys_state.state_now = sys_state.state_new;
+                    sys_state.state_switch_flag = false;
+                }
+                else if (sys_state.state_new == REF_FISHPOND_STATE_NORMAL) {
+                    sys_state.state_switch_flag = true;
+                    sys_state.state_now = sys_state.state_new;
+                    sys_state.state_switch_flag = false;
+                }
             } else if (sys_state.state_now == REF_FISHPOND_STATE_RELEASE) {
-                tx_thread_sleep(100);
-                sys_state.state_new = REF_FEEDINGTABLE_STATE_NORMAL;
-                sys_state.state_now = REF_FEEDINGTABLE_STATE_NORMAL;
+                if (sys_state.state_new == REF_FISHPOND_STATE_FIXING) {
+                    sys_state.state_switch_flag = true;
+                    sys_state.state_now = sys_state.state_new;
+                    sys_state.state_switch_flag = false;
+                }
+                else if (sys_state.state_new == REF_FISHPOND_STATE_NORMAL) {
+                    sys_state.state_switch_flag = true;
+                    sys_state.state_now = sys_state.state_new;
+                    sys_state.state_switch_flag = false;
+                }
             }
 
             sys_state.state_last = sys_state.state_now;
@@ -264,6 +302,7 @@ uint8_t RefereeThreadStack[2048] = {0};
     HAL_UARTEx_ReceiveToIdle_DMA(&huart4, sys_state.uart_rx_buf, sys_state.buf_len);
 
     for (;;) {
+        heart_beat.state = sys_state.state_now;
         heart_beat.pack_count++;
         heart_beat.battery_voltage = 24000;
 
@@ -303,13 +342,12 @@ uint8_t RefereeThreadStack[2048] = {0};
                         case MAVLINK_MSG_ID_SET_CONPONENT_STATE:
                             mavlink_msg_set_conponent_state_decode(&msg_rx, &set_state_msg);
                             if (set_state_msg.component == sys_state.ref_system_id) {
-                                if ((set_state_msg.component == REF_FISHPOND_STATE_STOP) ||
-                                    (set_state_msg.component == REF_FEEDINGTABLE_STATE_STOP)) {
+                                if ((set_state_msg.new_state == REF_FISHPOND_STATE_STOP) ||
+                                    (set_state_msg.new_state == REF_FEEDINGTABLE_STATE_STOP)) {
                                     sys_state.state_now = set_state_msg.new_state;
                                     sys_state.state_new = set_state_msg.new_state;
                                     sys_state.motor_error = true;
                                 } else if (sys_state.state_switch_flag == 0) {
-                                    sys_state.state_now = set_state_msg.new_state;
                                     sys_state.state_new = set_state_msg.new_state;
                                     sys_state.state_parameter = set_state_msg.parameter;
                                 }
@@ -334,6 +372,6 @@ uint8_t RefereeThreadStack[2048] = {0};
                 }
             }
         }
-        tx_thread_sleep(10);
+        tx_thread_sleep(50);
     }
 }

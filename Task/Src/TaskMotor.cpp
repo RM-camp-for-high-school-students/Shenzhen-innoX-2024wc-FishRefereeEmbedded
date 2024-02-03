@@ -18,7 +18,7 @@ using namespace TASK_MOTOR;
 static cDMFace dm_motor[4];
 static ZDT::cZDT zdt[4];
 
-#define DM_SPEED_FACE 1.0f
+#define DM_SPEED_FACE 2.0f
 
 
 static uint32_t *can_mail_box = nullptr;
@@ -168,7 +168,7 @@ uint8_t MotorThreadStack[3072] = {0};
                 zdt_enable_last[id] = false;
                 tx_thread_sleep(1);
             } else if (zdt_enable_last[id] == false) {
-                zdt[id].ClearPstZero(tx_header2_0.ExtId, tx_header2_0.DLC, can_data2_0, true);
+                zdt[id].ClearPstZero(tx_header2_0.ExtId, tx_header2_0.DLC, can_data2_0);
                 zdt[id].Enable(tx_header2_1.ExtId, tx_header2_1.DLC, can_data2_1, true);
                 HAL_CAN_AddTxMessage(&hcan2, &tx_header2_0, can_data2_0, can_mail_box);
                 HAL_CAN_AddTxMessage(&hcan2, &tx_header2_1, can_data2_1, can_mail_box);
@@ -212,6 +212,7 @@ uint8_t MotorThreadStack[3072] = {0};
         }
 
         while (sys_state.motor_error) {
+            LL_TIM_SetAutoReload(TIM2,349);
             /*Disable All motor*/
             // DM
             for (uint8_t id = 0; id < sys_state.motor_dm_num; id++) {
@@ -225,9 +226,9 @@ uint8_t MotorThreadStack[3072] = {0};
                 HAL_CAN_AddTxMessage(&hcan2, &tx_header2_0, can_data2_0, can_mail_box);
                 tx_thread_sleep(1);
             }
-//            LL_TIM_OC_SetCompareCH4(TIM2, 249);
-//            tx_thread_sleep(1000);
-//            LL_TIM_OC_SetCompareCH4(TIM2, 0);
+            LL_TIM_OC_SetCompareCH4(TIM2, 249);
+            tx_thread_sleep(1000);
+            LL_TIM_OC_SetCompareCH4(TIM2, 0);
             tx_thread_sleep(1000);
         }
     }
@@ -265,7 +266,7 @@ static void MotorReInit() {
     }
     //Clear Zero
     for (uint8_t id = 0; id < sys_state.motor_zdt_num; id++) {
-        zdt[id].ClearPstZero(tx_header2_0.ExtId, tx_header2_0.DLC, can_data2_0, false);
+        zdt[id].ClearPstZero(tx_header2_0.ExtId, tx_header2_0.DLC, can_data2_0);
         HAL_CAN_AddTxMessage(&hcan2, &tx_header2_0, can_data2_0, can_mail_box);
         tx_thread_sleep(1);
     }
