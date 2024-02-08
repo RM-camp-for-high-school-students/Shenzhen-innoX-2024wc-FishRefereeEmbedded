@@ -82,8 +82,8 @@ void Task_Booster() {
             sys_state.state_new = sys_state.state_now;
             sys_state.motor_dm_num = 1;
             sys_state.motor_zdt_num = 0;
-            sys_state.angle_set_clean = 1.1f;
-            sys_state.angle_set_normal = 0.05f;
+            sys_state.angle_set_clean = -1.1f;
+            sys_state.angle_set_normal = -0.05f;
 
         	tx_semaphore_create(
         		&RemoterThreadSem,
